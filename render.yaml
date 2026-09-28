@@ -1,0 +1,108 @@
+# Render Blueprint — creates the Key Value (Redis) instance and the API together.
+#
+# Render → New + → Blueprint → pick this repository. Everything marked
+# `sync: false` is left blank on purpose and must be pasted into the dashboard;
+# those are the secrets, and they do not belong in a Git repository.
+
+services:
+  - type: keyvalue
+    name: expats-redis
+    plan: free
+    # Reachable only from inside this Render account's network.
+    ipAllowList: []
+
+  - type: web
+    name: expats-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main.js
+    # Render pings this to decide whether a deploy succeeded. It checks
+    # Postgres, pgvector and Redis, so a green deploy means all three answered.
+    healthCheckPath: /api/health
+
+    envVars:
+      # --- what makes a public instance safe ------------------------------
+      # DEPLOYED=true turns on the startup assertions. The API refuses to boot
+      # if ADMIN_API_KEY, JWT_SECRET or CORS_ORIGINS is missing, rather than
+      # coming up healthy while serving an open delete endpoint.
+      - key: DEPLOYED
+        value: "true"
+      - key: REGISTRATION_ENABLED
+        value: "false"
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRY
+        value: 7d
+      # Set this to the Vercel URL once the web app is deployed, with no
+      # trailing slash. Until then the browser blocks every request.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # --- database -------------------------------------------------------
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+
+      # --- redis: filled in automatically from the instance above ---------
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: expats-redis
+          property: connectionString
+
+      # --- storage --------------------------------------------------------
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        value: "true"
+      - key: S3_BUCKET_KB
+        value: expats-knowledge-base
+      - key: S3_BUCKET_UPLOADS
+        value: expats-user-uploads
+      - key: S3_PRESIGN_EXPIRY
+        value: "900"
+
+      # --- models ---------------------------------------------------------
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: EMBEDDING_PROVIDER
+        value: gemini
+      - key: EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: EMBEDDING_DIMENSIONS
+        value: "384"
+      - key: GEMINI_MODEL_ANSWER
+        value: gemini-3.6-flash
+      - key: GEMINI_MODEL_CLASSIFY
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_MODEL_FALLBACKS
+        value: gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-3.1-flash-lite,gemini-3-flash-preview
+
+      # --- retrieval ------------------------------------------------------
+      # RETRIEVAL_MIN_SIMILARITY is a property of the embedding model, not a
+      # preference: 0.65 is right for gemini-embedding-001 and wrong for
+      # anything else. Change the model and this must move with it.
+      - key: RETRIEVAL_MIN_SIMILARITY
+        value: "0.65"
+      - key: RETRIEVAL_TOP_K
+        value: "5"
+      - key: RETRIEVAL_FALLBACK_MIN
+        value: "3"
+      - key: CHUNK_SIZE_WORDS
+        value: "500"
+      - key: CHUNK_OVERLAP_WORDS
+        value: "50"
+      - key: CACHE_TTL_HOURS
+        value: "24"
