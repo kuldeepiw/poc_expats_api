@@ -44,12 +44,16 @@ export class InitialSchema1758700000000 implements MigrationInterface {
     `);
 
     // --- taxonomy ----------------------------------------------------------
-    // Categories and processes share one table: a new one is a row, not a
-    // schema change.
+    // Categories, processes and states share one table: a new one is a row,
+    // not a schema change.
+    //
+    // 'state' belongs in this list. Leaving it out made every fresh database
+    // fail on the seed migration, while databases created before states
+    // existed kept working — so it only ever broke a first deployment.
     await queryRunner.query(`
       CREATE TABLE taxonomy (
         id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-        type          varchar NOT NULL CHECK (type IN ('category','process')),
+        type          varchar NOT NULL CHECK (type IN ('category','process','state')),
         key           varchar NOT NULL,
         name          varchar NOT NULL,
         description   varchar,
