@@ -26,15 +26,22 @@ NestJS · TypeORM · PostgreSQL + pgvector · Redis/BullMQ · S3-compatible stor
 
 ## Running it locally
 
-Needs Postgres with pgvector, Redis and an S3-compatible store. A `docker-compose.yml`
-covering all three lives in the parent project.
+Needs Postgres with pgvector, Redis and an S3-compatible store. `docker-compose.yml` in
+this repository brings up all three, plus pgAdmin and a MinIO bucket initialiser.
 
 ```bash
-cp .env.example .env     # then fill in DATABASE_URL, REDIS_URL, S3_*, GEMINI_API_KEY
+cp .env.example .env     # fill in GEMINI_API_KEY; the rest have working defaults
+docker compose up -d     # Postgres + pgvector, Redis, MinIO, pgAdmin
 npm ci
 npm run migration:run
 npm run start:dev
 ```
+
+One `.env` drives both: the application settings at the top, and the local container
+settings — ports, MinIO buckets, Postgres credentials — at the bottom. A deployed
+instance uses hosted services and ignores the second half entirely.
+
+`sample-docs/` has small text files to upload while testing.
 
 `GET /api/health` reports on Postgres, pgvector and Redis together.
 

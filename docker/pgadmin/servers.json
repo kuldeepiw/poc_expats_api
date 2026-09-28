@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Expats POC",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "expats",
+      "Username": "expats",
+      "SSLMode": "prefer",
+      "Comment": "PostgreSQL 16 + pgvector. Host is the compose service name, not localhost."
+    }
+  }
+}
